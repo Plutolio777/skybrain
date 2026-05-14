@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyBrain 产品调研汇报 V1 (痛点详尽版)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
+        
+        :root {
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.6);
+            --secondary: #8b5cf6;
+            --bg-color: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #cbd5e1;
+            --card-bg: rgba(30, 41, 59, 0.75);
+            --border-color: rgba(255, 255, 255, 0.15);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.15);
+            --warning: #f59e0b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.12), transparent 35%),
+                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.12), transparent 35%);
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* 控制按钮 */
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            right: 40px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 15px var(--primary-glow);
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%;
+            z-index: 100;
+            transition: width 0.4s ease;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        /* 幻灯片容器 */
+        .slider {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateX(80px) scale(0.97);
+            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3% 5%;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        .slide.prev {
+            opacity: 0;
+            transform: translateX(-80px) scale(0.97);
+            z-index: 5;
+        }
+
+        /* 布局样式 */
+        .slide-content {
+            display: flex;
+            width: 100%;
+            max-width: 1500px;
+            height: 90%;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+        }
+
+        .slide-text {
+            flex: 1.4;
+            padding: 50px 60px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .slide-image {
+            flex: 0.8;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .slide-image::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to right, var(--card-bg) 0%, rgba(30, 41, 59, 0) 60%);
+        }
+
+        .slide.reverse .slide-content {
+            flex-direction: row-reverse;
+        }
+        
+        .slide.reverse .slide-image::after {
+            background: linear-gradient(to left, var(--card-bg) 0%, rgba(30, 41, 59, 0) 60%);
+        }
+
+        /* 文本元素 */
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #93c5fd, #d8b4fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+            letter-spacing: -1px;
+        }
+
+        h2 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 30px;
+            color: #f8fafc;
+            position: relative;
+            padding-bottom: 15px;
+            letter-spacing: -0.5px;
+            flex-shrink: 0;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 2px;
+        }
+
+        .content-block {
+            margin-bottom: 25px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .content-block.danger {
+            background: var(--danger-bg);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            color: #e2e8f0;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h3::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--primary-glow);
+        }
+        
+        .danger h3::before {
+            background: var(--danger);
+            box-shadow: 0 0 8px var(--danger);
+        }
+
+        p, ul, li {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        ul {
+            padding-left: 24px;
+            margin-top: 8px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        .highlight {
+            color: #93c5fd;
+            font-weight: 600;
+        }
+        
+        .alert {
+            color: #fca5a5;
+            font-style: italic;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #bfdbfe;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* 封面特化 */
+        .slide-cover .slide-content {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            backdrop-filter: none;
+            justify-content: center;
+        }
+
+        .slide-cover h1 {
+            font-size: 5rem;
+            background: linear-gradient(to right, #60a5fa, #c084fc, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+
+        .slide-cover p {
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+        
+        .slide-cover .version {
+            margin-top: 30px;
+            font-size: 1.1rem;
+            color: #94a3b8;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            padding: 8px 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 30px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .cover-bg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.2;
+            background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=futuristic%20AI%20brain%20glowing%20blue%20and%20purple%20neural%20network%20abstract%20tech%20background%20high%20detail&image_size=landscape_16_9');
+            background-size: cover;
+            background-position: center;
+            filter: blur(4px);
+        }
+
+        .page-num {
+            position: absolute;
+            bottom: 30px;
+            left: 40px;
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.4);
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .quote-box {
+            border-left: 4px solid var(--secondary);
+            padding-left: 15px;
+            margin: 15px 0;
+            color: #e2e8f0;
+            font-style: italic;
+            background: rgba(139, 92, 246, 0.1);
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="progress-bar"></div>
+
+    <div class="slider">
+        <!-- Slide 1: 封面 -->
+        <div class="slide slide-cover active">
+            <div class="cover-bg"></div>
+            <div class="slide-content">
+                <h1>SkyBrain</h1>
+                <p>企业级 AI 编码上下文引擎详尽方案</p>
+                <div class="version">产品调研汇报 V1.1 (痛点深度解析版)</div>
+            </div>
+        </div>
+
+        <!-- Slide 2: 痛点总览 -->
+        <div class="slide">
+            <div class="slide-content">
+                <div class="slide-text">
+                    <h2>一、痛点总览：大型项目中的 AI 编码瓶颈</h2>
+                    <p style="margin-bottom: 20px;">AI 编程工具（Copilot/Cursor/Trae）在大型企业级落地时效果骤降，核心矛盾在于：<span class="highlight">AI 需要的上下文知识分散在人脑、文档、各仓库代码之中，缺乏一个统一的生命周期管理体系。</span></p>
+                    
+                    <div class="content-block">
+                        <h3>知识生命周期的全面断层</h3>
+                        <ul>
+                            <li>**知识生产环节**：大量“隐性知识”未被系统化记录，AI 完全无法感知。</li>
+                            <li>**知识分发环节**：知识有了，但各工具不通，依赖人工手动复制粘贴注入。</li>
+                            <li>**团队协作环节**：团队缺少“AI 犯错 → 人工纠正 → 反馈到上下文”的闭环。</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="quote-box">
+                        “目前的现状是：每个人的上下文环境都不一样，导致使用 AI 产出的代码良莠不齐。同一个任务，不同开发者借助 AI 完成的质量差异巨大。”
+                    </div>
+                </div>
+                <div class="slide-image" style="background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=complex%20scattered%20puzzle%20pieces%20glowing%20code%20fragments%20dark%20tech&image_size=landscape_4_3');"></div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 痛点详解 - 知识生产篇 I -->
+        <div class="slide reverse">
+            <div class="slide-content">
+                <div class="slide-text">
+                    <h2>二、深度剖析：知识生产环节的“半盲”状态 (1)</h2>
+                    <p style="margin-bottom: 20px;">在代码库之外，存在大量决定代码生死却未被代码化的“隐性知识”。</p>
+                    
+                    <div class="content-block danger">
+                        <h3>A. 跨模块调用失配</h3>
+                        <p>**场景**：修改仓库A的代码需要调用仓库B的 RPC 接口。<br>
+                        **灾难**：AI 视野局限于单仓库，基于过时或错误的接口签名生成了调用代码；或者公共组件库升级了 API，AI 仍在生成旧版代码。<br>
+                        <span class="alert">结果：编译失败，联调阶段频频报错。</span></p>
+                    </div>
+
+                    <div class="content-block danger">
+                        <h3>B. 业务规则与隐式校验缺失</h3>
+                        <p>**场景**：订单状态流转有严格的状态机约束（如“已发货”只能到“已签收”），或金额计算存在特殊精度规则。<br>
+                        **灾难**：这些规则只存在于 PRD 或资深开发记忆中。AI 生成的代码看似完美，却遗漏了关键业务校验。<br>
+                        <span class="alert">结果：产生严重的业务资损 Bug。</span></p>
+                    </div>
+                </div>
+                <div class="slide-image" style="background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=blindfolded%20robot%20trying%20to%20build%20complex%20gears%20dark%20blue%20neon&image_size=landscape_4_3');"></div>
+            </div>
+        </div>
+
+        <!-- Slide 4: 痛点详解 - 知识生产篇 II -->
+        <div class="slide">
+            <div class="slide-content">
+                <div class="slide-text">
+                    <h2>二、深度剖析：知识生产环节的“半盲”状态 (2)</h2>
+                    
+                    <div class="content-block danger">
+                        <h3>C. 项目约定与第三方依赖封装差异</h3>
+                        <p>**场景**：团队有统一的 HTTP 客户端封装（带 trace header、重试策略），或统一的鉴权中间件。<br>
+                        **灾难**：AI 不知道这层内部 SDK 的存在，直接使用原生 fetch/axios 或 JDBC 裸调，绕过了团队的监控、审计和限流机制。<br>
+                        <span class="alert">结果：代码跑得通，但引发线上安全隐患和监控盲区。</span></p>
+                    </div>
+
+                    <div class="content-block danger">
+                        <h3>D. 历史遗留逻辑的“致命重构”</h3>
+                        <p>**场景**：代码中有一段“看起来冗余”的校验逻辑，实际是某次线上事故后加的防御性代码。<br>
+                        **灾难**：AI 按常规最佳实践重构，自作聪明地删除了这些防御逻辑。<br>
+                        <span class="alert">结果：老 Bug 秽土重生。</span></p>
+                    </div>
+                    
+                    <div class="content-block danger">
+                        <h3>E. 外部研发系统的孤岛</h3>
+                        <p>**场景**：排查线上 Bug 或开发新需求。<br>
+                        **灾难**：报错堆栈在 SkyWalking，需求在 Jira。AI 被禁锢在 IDE 里，无法拉取这些外部上下文，只能靠开发者人肉搬运日志。<br>
+                        <span class="alert">结果：开发者沦为“AI 的搬砖工”。</span></p>
+                    </div>
+                </div>
+                <div class="slide-image" style="background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=isolated%20islands%20of%20glowing%20data%20failing%20to%20connect%20cyberpunk&image_size=landscape_4_3');"></div>
+            </div>
+        </div>
+
+        <!-- Slide 5: 痛点详解 - 知识分发篇 -->
+        <div class="slide reverse">
+            <div class="slide-content">
+                <div class="slide-text">
+                    <h2>三、深度剖析：知识分发环节的“管道堵塞”</h2>
+                    <p style="margin-bottom: 20px;">即便有了知识，如何正确、高效、无感地送达给 AI？目前一片混乱。</p>
+                    
+                    <div class="content-block danger">
+                        <h3>N. 上下文配置的重复劳动与格式不兼容</h3>
+                        <p>**场景**：团队制定了统一编码规范。<br>
+                        **灾难**：要在 Cursor 的 `.cursorrules`、Copilot 的 `.github/copilot-instructions.md`、Trae 的 Rules 里分别手写三份不同格式的副本。无法复用，维护成本极高。</p>
+                    </div>
+
+                    <div class="content-block danger">
+                        <h3>O. 上下文保鲜困难 & 版本不同步</h3>
+                        <p>**场景**：公共组件库从 V2 升级到 V3，或代码回滚到旧分支修 Bug。<br>
+                        **灾难**：每个人本地的 Rules 是“配完即忘”。架构变了，AI 还在按过时的上下文写旧代码；代码回滚了，AI 却用新规范写代码导致无法编译。<br>
+                        <span class="alert">结果：知识与代码脱钩，错配率极高。</span></p>
+                    </div>
+
+                    <div class="content-block danger">
+                        <h3>X. 长对话的“遗忘”退化</h3>
+                        <p>**场景**：复杂重构任务，与 AI 对话了 10 轮以上。<br>
+                        **灾难**：早期注入的设计约束被逐渐“挤出”上下文窗口。前几个文件改得好，后面突然开始乱抛异常，忘记了最初的约定。</p>
+                    </div>
+                </div>
+                <div class="slide-image" style="background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=clogged%20glowing%20pipes%20leaking%20digital%20data%20dark%20factory&image_size=landscape_4_3');"></div>
+            </div>
+        </div>
+
+        <!-- Slide 6: 痛点详解 - 团队协作篇 -->
+        <div class="slide">
+            <div class="slide-content">
+                <div class="slide-text">
+                    <h2>四、深度剖析：团队协作环节的“各自为战”</h2>
+                    <p style="margin-bottom: 20px;">AI 编程目前仍是“个人玩具”，远未成为“团队资产”。</p>
+                    
+                    <div class="content-block danger">
+                        <h3>R. AI 产出的代码格式/风格撕裂</h3>
+                        <p>**场景**：多人协作同一个微服务项目。<br>
+                        **灾难**：因为大家本地配置不同，A 用 Cursor 生成 Stream 流，B 用 Copilot 生成 for 循环；A 抛 RuntimeException，B 抛 Checked Exception。<br>
+                        <span class="alert">结果：Code Review 时，大量精力浪费在“纠正 AI 的个人偏好风格”上，而非业务逻辑。</span></p>
+                    </div>
+
+                    <div class="content-block danger">
+                        <h3>S. 缺乏团队级的反馈闭环（AI在重复犯错）</h3>
+                        <p>**场景**：AI 搞错了一个内部接口的调用参数。<br>
+                        **灾难**：开发者 A 发现后手动修正了代码。但这个“纠偏经验”只留在了 A 的脑子里。明天开发者 B 遇到同类问题，AI 继续犯同样的错误。<br>
+                        <span class="alert">结果：团队永远在给 AI 擦屁股，无法把“踩坑经验”沉淀为全局免疫能力。</span></p>
+                    </div>
+                </div>
+                <div class="slide-image" style="background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=people%20working%20in%20isolated%20glowing%20glass%20cubes%20cyberpunk&image_size=landscape_4_3');"></div>
+            </div>
+        </div>
+
+        <!-- Slide 7: 竞品与壁垒 (过渡到解法) -->
+        <div class="slide reverse">
+            <div class="slide-content">
+                <div class="slide-text">
+                    <h2>五、竞品解法与 SkyBrain 的三大核心壁垒</h2>
+                    
+                    <div class="content-block">
+                        <h3>行业四大门派扫描</h3>
+                        <ul>
+                            <li>**上下文运维派 (Tessl)**：将 Agent 技能打包分发，但偏向自上而下写 Spec，老项目难冷启动。</li>
+                            <li>**持续学习记忆引擎 (Mem0/LangMem)**：跨会话记忆，但冷启动慢，缺乏强管控的业务约束。</li>
+                            <li>**多智能体图谱 (Graphiti)**：拓扑网络好，但实施成本极高，非开箱即用。</li>
+                            <li>**IDE 极客插件 (Continue.dev)**：手动引入上下文，缺乏企业级全局视野和团队 RBAC 隔离。</li>
+                        </ul>
+                    </div>
+
+                    <div class="content-block">
+                        <h3>SkyBrain 不可妥协的三大设计底线</h3>
+                        <p><span class="badge">壁垒一：绝不脱离 IDE 主战场</span> 必须提供沉浸式体验，开发者无需切窗口去网页端提问，知识在编码时自动就绪。</p>
+                        <p><span class="badge">壁垒二：跨工具的“上下文协议层 (CSP)”</span> 向下屏蔽 Cursor, Trae 等差异，向上提供统一的知识管理与权限分发枢纽。</p>
+                        <p><span class="badge">壁垒三：“冷热分层”类脑架构</span> 知识不能一股脑全塞。区分为 L1/L2 潜意识底座（常驻）与 L3 按需技能库（动态换页）。</p>
+                    </div>
+                </div>
+                <div class="slide-image" style="background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=solid%20glowing%20fortress%20shield%20protecting%20data%20core%20cyberpunk&image_size=landscape_4_3');"></div>
+            </div>
+        </div>
+
+        <!-- Slide 8: 产品终端形态 -->
+        <div class="slide">
+            <div class="slide-content">
+                <div class="slide-text">
+                    <h2>六、产品终端形态：Web 控制台 + Local Daemon</h2>
+                    <p style="margin-bottom: 15px;">摒弃单一插件形态，采用双端协同的物理边界隔离：</p>
+
+                    <div class="content-block">
+                        <h3>1. Web 端控制台 (实体存在 —— 面向管理者)</h3>
+                        <ul>
+                            <li>**定位**：团队资产的宏观管理与全局调度中心。</li>
+                            <li>**核心职责**：作为知识的<span class="highlight">审核中枢</span>（Review 开发者提交的提案），配置外部系统集成（Jira/GitLab），以及展示效能度量大屏。</li>
+                            <li>**受众**：TL、架构师、系统管理员。普通开发者极少登录。</li>
+                        </ul>
+                    </div>
+
+                    <div class="content-block">
+                        <h3>2. 本地守护客户端 Local Daemon (面向开发者)</h3>
+                        <ul>
+                            <li>**定位**：IDE 伴生管家，本地知识沙盒与跨端通信桥梁。</li>
+                            <li>**MCP 桥接通道**：在本地暴露为标准的 MCP Server，供 IDE 动态拉取云端知识。</li>
+                            <li>**本地沙盒**：暂存开发者的“待提交知识”，保障不污染云端。</li>
+                            <li>**规则同步器**：后台静默拉取强制规范，渲染为 `.cursorrules` 等静态文件注入。</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="slide-image" style="background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=two%20holographic%20screens%20syncing%20data%20blue%20and%20purple%20tech&image_size=landscape_4_3');"></div>
+            </div>
+        </div>
+
+        <!-- Slide 9: L1/L2/L3 架构 -->
+        <div class="slide reverse">
+            <div class="slide-content">
+                <div class="slide-text">
+                    <h2>七、创新架构：L1/L2/L3 三层知识与双轨制投递</h2>
+                    <p style="margin-bottom: 10px;">解决单纯依赖 MCP（AI可能偷懒不查）和静态文件（Token爆炸）的矛盾。</p>
+
+                    <div class="content-block">
+                        <h3>轨道一：磁盘写入强制注入 (L1 + L2)</h3>
+                        <ul>
+                            <li>**L1 元知识 (全局)**：SkyBrain 系统的“使用说明”。强制要求 AI：“写接口前必须通过 MCP 查询知识库”。</li>
+                            <li>**L2 固化知识 (项目级)**：项目核心技术栈、全局编码公约等“不可违背的常识”。</li>
+                            <li>**机制**：Local Daemon 渲染为静态文件（如 `.cursorrules`），强制注入 System Prompt，AI 无权拒绝。</li>
+                        </ul>
+                    </div>
+
+                    <div class="content-block">
+                        <h3>轨道二：MCP 动态查询按需拉取 (L3)</h3>
+                        <ul>
+                            <li>**L3 动态扩展知识**：API 定义、长篇业务流(Workflows)、SDK 调用范例。</li>
+                            <li>**机制**：由 L1 元指令驱动，AI 遇到特定任务时，主动通过 MCP 调用 `search_skybrain_skills()` 获取，完美解决上下文窗口遗忘问题。</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="slide-image" style="background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=three%20layers%20of%20glowing%20data%20discs%20stacked%20hologram%20tech&image_size=landscape_4_3');"></div>
+            </div>
+        </div>
+
+        <!-- Slide 10: 无摩擦录入与冷启动 -->
+        <div class="slide">
+            <div class="slide-content">
+                <div class="slide-text">
+                    <h2>八、极简录入：MCP 对话式写入与代码库冷启动</h2>
+                    
+                    <div class="content-block">
+                        <h3>MCP 对话式反向写入 (零摩擦力)</h3>
+                        <p>传统 IDE 插件右键菜单太重，打断心流。SkyBrain 颠覆了 MCP 仅作为“查询”的习惯：</p>
+                        <ul>
+                            <li>**自然语言触发**：开发者在 AI 聊天框顺嘴一句：“把这段重试逻辑作为规范保存到 SkyBrain”。</li>
+                            <li>**自动提取**：AI 识别意图，自动调用暴露的 `save_to_skybrain` 工具。</li>
+                            <li>**沙盒隔离**：内容直接存入开发者的 Local Daemon 本地沙盒，不污染中央大脑。</li>
+                        </ul>
+                    </div>
+
+                    <div class="content-block">
+                        <h3>存量项目冷启动（代码库即真相）</h3>
+                        <p>解决刚接入新项目时的“知识真空期”：</p>
+                        <ul>
+                            <li>**多维探针静默扫描**：部署依赖探针(package.json)、配置探针、目录结构探针和 AST 模式探针。</li>
+                            <li>**大模型二次提炼**：自动将代码习惯逆向工程为“基线知识规则”，作为“冷启动提案”推送给 TL 审核，数小时内完成知识库初建。</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="slide-image" style="background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=ai%20scanning%20code%20matrix%20extracting%20glowing%20rules%20abstract&image_size=landscape_4_3');"></div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 生命周期与四级作用域 -->
+        <div class="slide reverse">
+            <div class="slide-content">
+                <div class="slide-text">
+                    <h2>九、知识治理：防污染生命周期与四级精准分发</h2>
+                    
+                    <div class="grid-2">
+                        <div class="content-block">
+                            <h3>三级生命周期隔离</h3>
+                            <p>类似 Git PR 流的准入控制：</p>
+                            <ol>
+                                <li>**个人沙盒**：本地隔离验证，仅对自己可见，随意试错。</li>
+                                <li>**团队提案**：验证有效后提报。云端 AI 进行硬冲突预审，拦截垃圾规则。</li>
+                                <li>**中央大脑**：TL 审批 (Approve) 后，正式对全团队可见生效。</li>
+                            </ol>
+                        </div>
+                        <div class="content-block">
+                            <h3>四级作用域继承体系</h3>
+                            <p>避免“知识一刀切”与 Token 浪费：</p>
+                            <ul>
+                                <li><span class="badge">Org</span> 公司级底层规范</li>
+                                <li><span class="badge">Project</span> 项目级全局常识</li>
+                                <li><span class="badge">Module</span> 模块级专有逻辑</li>
+                                <li><span class="badge">Branch</span> 分支级临时知识</li>
+                            </ul>
+                            <p>Local Daemon 通过监听当前活跃文件和 Git HEAD，动态合成上下文，下层覆盖上层。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="slide-image" style="background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=hierarchical%20glowing%20tree%20structure%20data%20filtering%20system&image_size=landscape_4_3');"></div>
+            </div>
+        </div>
+
+        <!-- Slide 12: GC与多端适配 -->
+        <div class="slide">
+            <div class="slide-content">
+                <div class="slide-text">
+                    <h2>十、长效运营：知识 GC 衰减与多端适配策略</h2>
+                    
+                    <div class="content-block">
+                        <h3>自动垃圾回收 (GC) 双重引擎</h3>
+                        <p>防止“知识腐化”导致 AI 幻觉的致命问题：</p>
+                        <ul>
+                            <li>**双通道手动反馈**：MCP 会话内自然语言反馈 + Local Daemon 面板逐条 👍/👎 标注。</li>
+                            <li>**HealthScore 算法**：健康分 = 手动评分(高权) + 时间/频次自动衰减(兜底)。</li>
+                            <li>**逻辑删除**：低于阈值自动从 AI 视野中隐藏，退回待审区，保留历史归档。</li>
+                        </ul>
+                    </div>
+
+                    <div class="content-block">
+                        <h3>多 IDE / 多端优雅适配</h3>
+                        <p>团队里有人用 Cursor，有人用 Trae，规则写在哪？</p>
+                        <ul>
+                            <li>**内容标准化**：云端仅维护一套统一的 Markdown 知识。</li>
+                            <li>**工具探针与路径适配器**：Local Daemon 扫描检测当前环境（如 `.cursor/rules/`, `.clinerules/` 等）。</li>
+                            <li>**优雅降级**：根据工具能力画像自动翻译并手动同步写入，实现“一处维护，多端生效”。</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="slide-image" style="background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=multiple%20device%20screens%20syncing%20same%20glowing%20data%20abstract&image_size=landscape_4_3');"></div>
+            </div>
+        </div>
+
+        <!-- Slide 13: 演进路线 -->
+        <div class="slide reverse">
+            <div class="slide-content">
+                <div class="slide-text">
+                    <h2>十一、演进路线与下一步计划 (Next Steps)</h2>
+                    
+                    <div class="content-block">
+                        <h3>V1.0 MVP 核心闭环圈定</h3>
+                        <ul>
+                            <li>**优先打通**：极简 MCP 知识录入 → 个人沙盒 → Web端简易审批 → L1/L2 静态同步（优先适配 Cursor/Trae）及 L3 动态查询的主干流程。</li>
+                            <li>**暂缓内容**：复杂的 AST 偏移探测防腐化机制、全自动化的模块边界推断、复杂的图谱推理。</li>
+                        </ul>
+                    </div>
+
+                    <div class="content-block">
+                        <h3>近期行动项 (Action Items)</h3>
+                        <ul>
+                            <li>**原型设计**：启动 Web Console（管理端）与 Local Daemon 托盘面板的核心 UI/UX 交互设计。</li>
+                            <li>**技术 POC 验证**：
+                                <br>1. 验证基于 MCP 的反向 `save_to_skybrain` 写入机制。
+                                <br>2. 验证 L1 强制指令引导大模型主动调用 L3 知识库的成功率。
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="slide-image" style="background-image: url('https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=futuristic%20glowing%20roadmap%20blueprint%20tech%20planning%20abstract&image_size=landscape_4_3');"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 底部控制按钮 -->
+    <div class="page-num" id="pageNum">01 / 13</div>
+    <div class="controls">
+        <div class="btn" id="prevBtn" title="上一页 (←)">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </div>
+        <div class="btn" id="nextBtn" title="下一页 (→/Space)">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="btn" id="fsBtn" title="全屏 (F)">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const progressBar = document.querySelector('.progress-bar');
+        const pageNum = document.getElementById('pageNum');
+
+        function updateSlides() {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'prev');
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                } else if (index < currentSlide) {
+                    slide.classList.add('prev');
+                }
+            });
+            progressBar.style.width = ((currentSlide + 1) / slides.length) * 100 + '%';
+            pageNum.innerText = `${String(currentSlide + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateSlides();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlides();
+            }
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', nextSlide);
+        document.getElementById('prevBtn').addEventListener('click', prevSlide);
+
+        // 键盘控制
+        window.addEventListener('keydown', (e) => {
+            if (['ArrowRight', 'Space', 'Enter', 'PageDown'].includes(e.code)) {
+                nextSlide();
+            } else if (['ArrowLeft', 'Backspace', 'PageUp'].includes(e.code)) {
+                prevSlide();
+            } else if (e.code === 'KeyF') {
+                toggleFullscreen();
+            }
+        });
+
+        // 触摸滑动
+        let touchStartX = 0;
+        window.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, {passive: true});
+        
+        window.addEventListener('touchend', e => {
+            let touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) nextSlide();
+            if (touchEndX - touchStartX > 50) prevSlide();
+        }, {passive: true});
+
+        // 鼠标滚轮 (带防抖)
+        let wheelTimeout;
+        window.addEventListener('wheel', (e) => {
+            if (wheelTimeout) return;
+            wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 800);
+            
+            // 防止在文本区域滚动时触发翻页
+            const target = e.target;
+            const isScrollable = target.closest('.slide-text');
+            if (isScrollable) {
+                const el = target.closest('.slide-text');
+                const isAtTop = el.scrollTop === 0;
+                const isAtBottom = Math.abs(el.scrollHeight - el.clientHeight - el.scrollTop) < 1;
+                
+                if (!(isAtTop && e.deltaY < 0) && !(isAtBottom && e.deltaY > 0)) {
+                    return; // 内部还可以滚动，阻止翻页
+                }
+            }
+
+            if (e.deltaY > 0) nextSlide();
+            else if (e.deltaY < 0) prevSlide();
+        }, {passive: false});
+
+        // 全屏控制
+        const fsBtn = document.getElementById('fsBtn');
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`全屏请求失败: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        fsBtn.addEventListener('click', toggleFullscreen);
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fsBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>';
+            } else {
+                fsBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
+            }
+        });
+
+        // 初始化
+        updateSlides();
+    </script>
+</body>
+</html>
